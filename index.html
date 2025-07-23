@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>Nightbot Eval Tester</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn&display=swap');
+
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      direction: rtl;
+      padding: 20px;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    textarea {
+      width: 100%;
+      max-width: 700px;
+      height: 150px;
+      font-family: monospace;
+      direction: ltr;
+      background: #1e1e1e;
+      color: #0f0;
+      padding: 15px;
+      border: 1px solid #444;
+      border-radius: 8px;
+      resize: vertical;
+      margin-bottom: 15px;
+    }
+
+    button {
+      padding: 12px 24px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+
+    button:hover {
+      background: #45a049;
+    }
+
+    .output {
+      background: #1e1e1e;
+      color: #0ff;
+      padding: 15px;
+      max-width: 700px;
+      width: 100%;
+      white-space: pre-wrap;
+      border-radius: 8px;
+      border: 1px solid #0ff;
+    }
+  </style>
+</head>
+<body>
+  <h1>شبیه‌ساز Nightbot Eval + URLFetch</h1>
+  <p>دستور Nightbot را وارد کنید (مثلاً: <code>$(eval ...)</code> یا <code>$(urlfetch ...)</code>)</p>
+  <textarea id="input" placeholder="$(eval var p=Math.random()*100; p.toFixed(1))"></textarea>
+  <button onclick="runEval()">اجرای کد</button>
+  <div id="status" style="margin-bottom: 5px; color: #ff0; font-size: 16px;"></div>
+
+  <div class="output" id="output">نتیجه نمایش داده می‌شود...</div>
+
+  <script>
+    const nightbotVars = {
+      '$(user)': 'AliKiller',
+      '$(touser)': '@NoobPlayer',
+      '$(channel)': 'AliChannel',
+      '$(count)': '5',
+      '$(query)': 'some text',
+      '$(querystring)': 'some text',
+      '$(time)': new Date().toLocaleTimeString('fa-IR'),
+      '$(date)': new Date().toLocaleDateString('fa-IR'),
+      '$(random)': Math.random().toFixed(4),
+    };
+
+async function runEval() {
+  const input = document.getElementById("input").value.trim();
+  const output = document.getElementById("output");
+  const status = document.getElementById("status");
+
+  if (input.startsWith("$(urlfetch ")) {
+    const url = input.match(/\$\(urlfetch\s+(.*?)\)/);
+    if (url && url[1]) {
+      try {
+        const res = await fetch(url[1]);
+        const text = await res.text();
+        status.textContent = "🌐 خروجی URLfetch:";
+        output.textContent = text;
+      } catch (e) {
+        status.textContent = "❌ خطا در urlfetch:";
+        output.textContent = e.message;
+      }
+    } else {
+      status.textContent = "❌ آدرس urlfetch معتبر نیست.";
+      output.textContent = '';
+    }
+    return;
+  }
+
+  let code = input;
+
+  if (code.startsWith("$(eval") && code.endsWith(")")) {
+    code = code.slice(7, -1);
+  }
+
+  for (const [key, value] of Object.entries(nightbotVars)) {
+    code = code.split(key).join(value);
+  }
+
+  try {
+    if (code.includes("=>") || code.includes("async") || code.includes("await")) {
+      status.textContent = "⛔ arrow function یا async/await پشتیبانی نمی‌شود.";
+      output.textContent = '';
+      return;
+    }
+
+    const result = eval(code);
+    status.textContent = '✅ خروجی eval:';
+    output.textContent = result;
+  } catch (e) {
+    status.textContent = '❌ خطا در eval:';
+    output.textContent = e.message;
+  }
+}
+
+  </script>
+</body>
+</html>
